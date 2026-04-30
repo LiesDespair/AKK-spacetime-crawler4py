@@ -1,13 +1,8 @@
 import re
+from collections import Counter
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
-import analytics
-
-# ── Module-level page counter ────────────────────────────────────────────────
-# Used only to print a lightweight status line every N pages so you can
-# monitor progress in the terminal without opening the shelve manually.
-_pages_processed = 0
-_STATUS_EVERY = 100  # print status after every 100th page
+from analytics import record_page
 
 # ──────────────────────────────────────────────────────────────
 # Allowed domains/paths — only URLs under these will be crawled.
@@ -73,7 +68,6 @@ def extract_next_links(url, resp):
     • We skip empty hrefs, javascript: links, and mailto: links early to
       avoid polluting the frontier with garbage.
     """
-    global _pages_processed
     extracted_links = []
 
     # ── Guard: only process successful, non-empty responses ──────────
@@ -89,6 +83,8 @@ def extract_next_links(url, resp):
     if resp.raw_response is None:
         return extracted_links
     if not resp.raw_response.content:
+        return extracted_links
+    if len(resp.raw_response.content) > 5_000_000:  # skip files larger than 5 MB
         return extracted_links
 
     # ── Determine the base URL for resolving relative links ──────────
@@ -118,18 +114,8 @@ def extract_next_links(url, resp):
         return extracted_links
 
     # ── Record analytics for this page ───────────────────────────────
-    # We pass the already-parsed soup to analytics.record_page() so it
-    # can reuse the parse tree for word counting and tokenisation rather
-    # than parsing the HTML a second time.  The defragmented URL is used
-    # as the canonical key (matches how the frontier counts unique pages).
-    defrag_url, _ = urldefrag(url)
-    analytics.record_page(defrag_url, soup)
-
-    # Print a lightweight progress line every _STATUS_EVERY pages so we
-    # can watch the crawl without tailing a log file.
-    _pages_processed += 1
-    if _pages_processed % _STATUS_EVERY == 0:
-        analytics.print_status()
+    clean_url, _ = urldefrag(url)
+    record_page(clean_url, soup)
 
     # ── Extract all <a> tags with an href attribute ──────────────────
     for anchor in soup.find_all("a", href=True):
@@ -191,7 +177,7 @@ def is_valid(url):
             return False
         hostname = hostname.lower()
 
-        # Special case: today.uci.edu only under /department/information_computer_sciences
+        # Special case: today.uci.edu is only allowed under the ICS department path.
         if hostname == "today.uci.edu":
             if not parsed.path.lower().startswith("/department/information_computer_sciences"):
                 return False
@@ -229,7 +215,6 @@ def is_valid(url):
         #    classic trap pattern.  If any single segment appears 4+
         #    times, it's almost certainly a loop.
         if path_parts:
-            from collections import Counter
             seg_counts = Counter(path_parts)
             if seg_counts.most_common(1)[0][1] >= 4:
                 return False

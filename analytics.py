@@ -116,8 +116,7 @@ def _get_or_default(shelf, key, default):
 
 
 def _is_ics_subdomain(hostname: str) -> bool:
-    """Return True if hostname is ics.uci.edu or a subdomain of it."""
-    return hostname == "ics.uci.edu" or hostname.endswith(".ics.uci.edu")
+    return hostname.endswith(".uci.edu")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -196,9 +195,11 @@ def record_page(url: str, soup) -> None:
                 # ── Q4: subdomain page counts ─────────────────────────
                 # Only track *.ics.uci.edu subdomains as the question asks.
                 if _is_ics_subdomain(hostname):
-                    subdomain_counts = _get_or_default(db, "subdomain_counts", {})
-                    subdomain_counts[hostname] = subdomain_counts.get(hostname, 0) + 1
-                    db["subdomain_counts"] = subdomain_counts
+                    subdomain_urls = _get_or_default(db, "subdomain_urls", {})
+                    if hostname not in subdomain_urls:
+                        subdomain_urls[hostname] = set()
+                    subdomain_urls[hostname].add(url)
+                    db["subdomain_urls"] = subdomain_urls
 
                 db.sync()
             finally:
@@ -222,7 +223,7 @@ def generate_report() -> None:
             unique_pages    = db.get("unique_pages",    set())
             longest_page    = db.get("longest_page",    {"url": "N/A", "word_count": 0})
             word_freq       = db.get("word_freq",       Counter())
-            subdomain_counts = db.get("subdomain_counts", {})
+            subdomain_urls = db.get("subdomain_urls", {})
         finally:
             db.close()
 
@@ -256,8 +257,8 @@ def generate_report() -> None:
     lines.append("=" * 70)
     lines.append("Q4. Subdomains found in ics.uci.edu (alphabetical)")
     lines.append("=" * 70)
-    for subdomain in sorted(subdomain_counts):
-        lines.append(f"  {subdomain}, {subdomain_counts[subdomain]}")
+    for subdomain in sorted(subdomain_urls):
+        lines.append(f"  {subdomain}, {len(subdomain_urls[subdomain])}")
     lines.append("")
 
     report_text = "\n".join(lines)
@@ -279,7 +280,7 @@ def print_status() -> None:
             n_unique     = len(db.get("unique_pages", set()))
             longest      = db.get("longest_page", {"url": "N/A", "word_count": 0})
             n_words      = sum(db.get("word_freq", Counter()).values())
-            n_subdomains = len(db.get("subdomain_counts", {}))
+            n_subdomains = len(db.get("subdomain_urls", {}))
         finally:
             db.close()
 
