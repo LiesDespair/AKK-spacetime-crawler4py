@@ -1,6 +1,13 @@
 import re
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
+import analytics
+
+# ── Module-level page counter ────────────────────────────────────────────────
+# Used only to print a lightweight status line every N pages so you can
+# monitor progress in the terminal without opening the shelve manually.
+_pages_processed = 0
+_STATUS_EVERY = 100  # print status after every 100th page
 
 # ──────────────────────────────────────────────────────────────
 # Allowed domains/paths — only URLs under these will be crawled.
@@ -66,6 +73,7 @@ def extract_next_links(url, resp):
     • We skip empty hrefs, javascript: links, and mailto: links early to
       avoid polluting the frontier with garbage.
     """
+    global _pages_processed
     extracted_links = []
 
     # ── Guard: only process successful, non-empty responses ──────────
@@ -108,6 +116,20 @@ def extract_next_links(url, resp):
     # real content worth indexing or following links from.
     if len(page_text) < 50:
         return extracted_links
+
+    # ── Record analytics for this page ───────────────────────────────
+    # We pass the already-parsed soup to analytics.record_page() so it
+    # can reuse the parse tree for word counting and tokenisation rather
+    # than parsing the HTML a second time.  The defragmented URL is used
+    # as the canonical key (matches how the frontier counts unique pages).
+    defrag_url, _ = urldefrag(url)
+    analytics.record_page(defrag_url, soup)
+
+    # Print a lightweight progress line every _STATUS_EVERY pages so we
+    # can watch the crawl without tailing a log file.
+    _pages_processed += 1
+    if _pages_processed % _STATUS_EVERY == 0:
+        analytics.print_status()
 
     # ── Extract all <a> tags with an href attribute ──────────────────
     for anchor in soup.find_all("a", href=True):
