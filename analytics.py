@@ -217,7 +217,17 @@ def generate_report() -> None:
     it only reads the shelf (no writes).  The report is printed to stdout
     and also written to analytics_report.txt.
     """
-    db = shelve.open(ANALYTICS_SAVE, flag="r")
+    import time
+    db = None
+    for _ in range(20):
+        try:
+            db = shelve.open(ANALYTICS_SAVE, flag="r")
+            break
+        except Exception:
+            time.sleep(0.5)
+    if db is None:
+        print("[analytics] Could not open shelve after retries — crawler may be busy.")
+        return
     try:
         unique_pages   = db.get("unique_pages",   set())
         longest_page   = db.get("longest_page",   {"url": "N/A", "word_count": 0})
