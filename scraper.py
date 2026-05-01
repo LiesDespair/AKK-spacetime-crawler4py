@@ -101,14 +101,9 @@ def extract_next_links(url, resp):
         return extracted_links
 
     # ── Low-content page detection ───────────────────────────────────
-    # Pages with very little visible text are often soft-404s, login
-    # walls, or error pages.  We still extract links from them because
-    # they may link to real content, but this is a natural place to add
-    # a threshold if we wanted to skip low-value pages entirely.
+    # Pages with fewer than 50 visible characters are soft-404s, login
+    # walls, or blank templates with no content worth indexing.
     page_text = soup.get_text(separator=" ", strip=True)
-    # Skip pages that are essentially empty (< 50 visible characters).
-    # These are usually server error pages or blank templates with no
-    # real content worth indexing or following links from.
     if len(page_text) < 50:
         return extracted_links
 
@@ -145,12 +140,12 @@ def is_valid(url):
     Design decisions
     ────────────────
     • Domain allow-list: We only crawl pages under the four UCI
-      sub-domains (ics, cs, informatics, stat) plus the ICS news
-      section on today.uci.edu.  Everything else is out-of-scope.
+      sub-domains (ics, cs, informatics, stat).  Everything else
+      is out-of-scope.
     • Trap avoidance:
-        – Calendar pages (e.g. ?ical, /calendar/, /events/ with dates)
-          create near-infinite crawl paths by generating a page for
-          every day into the future/past.
+        – Calendar/event pages create near-infinite crawl paths;
+          all /events/ and /event/ paths are blocked entirely, and
+          other calendar paths are blocked when combined with dates.
         – Very long URLs or deeply nested paths are typically auto-
           generated content or directory traversals.
         – Query strings with session-like parameters or sort/filter

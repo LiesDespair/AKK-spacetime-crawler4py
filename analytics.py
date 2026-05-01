@@ -8,16 +8,16 @@ Four things are tracked to answer the report questions:
   Q1. Unique page count (URL, fragment-stripped — matches frontier logic)
   Q2. Longest page by word count
   Q3. 50 most common words across all pages (stop-words excluded)
-  Q4. Subdomain → unique page count (for *.ics.uci.edu)
+  Q4. Subdomain → unique page count (for *.uci.edu)
 
 Thread-safety note: A threading.Lock guards every shelve write.  The
-current crawler is single-threaded, but the architecture allows adding
-workers, so we guard proactively.
+crawler runs multiple worker threads, so all shared state is protected
+by this lock to prevent data corruption.
 
 Usage:
   from analytics import record_page, generate_report
-  record_page(url, word_list)   # call once per crawled page
-  generate_report()             # call after crawling to print results
+  record_page(url, soup)   # call once per crawled page
+  generate_report()        # call after crawling to print results
 """
 
 import os
@@ -193,7 +193,7 @@ def record_page(url: str, soup) -> None:
                 db["word_freq"] = freq
 
                 # ── Q4: subdomain page counts ─────────────────────────
-                # Only track *.ics.uci.edu subdomains as the question asks.
+                # Track all *.uci.edu subdomains crawled.
                 if _is_ics_subdomain(hostname):
                     subdomain_urls = _get_or_default(db, "subdomain_urls", {})
                     if hostname not in subdomain_urls:
@@ -300,5 +300,5 @@ def print_status() -> None:
         f"unique={n_unique:,}  "
         f"longest={longest['word_count']:,} words ({longest['url']})  "
         f"total_word_occurrences={n_words:,}  "
-        f"ics_subdomains={n_subdomains}"
+        f"subdomains={n_subdomains}"
     )
