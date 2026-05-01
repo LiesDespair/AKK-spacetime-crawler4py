@@ -262,10 +262,12 @@ def generate_report() -> None:
         lines.append(f"  {rank:>3}. {word:<30} {count:>10,}")
     lines.append("")
 
-    # ── Q4: Subdomains of ics.uci.edu ────────────────────────────────────────
+    # ── Q4: Subdomains of uci.edu ─────────────────────────────────────────────
     lines.append("=" * 70)
-    lines.append("Q4. Subdomains found in ics.uci.edu (alphabetical)")
+    lines.append("Q4. Subdomains found in uci.edu (alphabetical)")
     lines.append("=" * 70)
+    lines.append(f"  Total subdomains: {len(subdomain_urls):,}")
+    lines.append("")
     for subdomain in sorted(subdomain_urls):
         lines.append(f"  {subdomain}, {len(subdomain_urls[subdomain])}")
     lines.append("")
