@@ -115,7 +115,7 @@ def _get_or_default(shelf, key, default):
     return shelf[key]
 
 
-def _is_ics_subdomain(hostname: str) -> bool:
+def _is_uci_subdomain(hostname: str) -> bool:
     return hostname.endswith(".uci.edu")
 
 
@@ -194,7 +194,7 @@ def record_page(url: str, soup) -> None:
 
                 # ── Q4: subdomain page counts ─────────────────────────
                 # Track all *.uci.edu subdomains crawled.
-                if _is_ics_subdomain(hostname):
+                if _is_uci_subdomain(hostname):
                     subdomain_urls = _get_or_default(db, "subdomain_urls", {})
                     if hostname not in subdomain_urls:
                         subdomain_urls[hostname] = set()
