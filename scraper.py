@@ -8,7 +8,6 @@ from analytics import record_page
 # Allowed domains/paths — only URLs under these will be crawled.
 # Derived from the seed URLs in config.ini.
 # We allow any subdomain of these (e.g. "vision.ics.uci.edu").
-# For "today.uci.edu" we restrict to the /department/information_computer_sciences path.
 # ──────────────────────────────────────────────────────────────
 ALLOWED_DOMAINS = [
     ".ics.uci.edu",
@@ -178,24 +177,20 @@ def is_valid(url):
         hostname = hostname.lower()
 
         # Known trap domains — block entirely.
-        BLOCKED_HOSTS = {"grape.ics.uci.edu", "intranet.ics.uci.edu", "wiki.ics.uci.edu"}
+        BLOCKED_HOSTS = {"grape.ics.uci.edu", "intranet.ics.uci.edu", "wiki.ics.uci.edu",
+                         "wics.ics.uci.edu"}
         if hostname in BLOCKED_HOSTS:
             return False
 
-        # Special case: today.uci.edu is only allowed under the ICS department path.
-        if hostname == "today.uci.edu":
-            if not parsed.path.lower().startswith("/department/information_computer_sciences"):
-                return False
-        else:
-            # General domain check — hostname must match or be a subdomain
-            # of one of our allowed domains.
-            domain_ok = any(
-                hostname == domain.lstrip(".")          # exact match (e.g. "ics.uci.edu")
-                or hostname.endswith(domain)            # subdomain (e.g. "vision.ics.uci.edu")
-                for domain in ALLOWED_DOMAINS
-            )
-            if not domain_ok:
-                return False
+        # General domain check — hostname must match or be a subdomain
+        # of one of our allowed domains.
+        domain_ok = any(
+            hostname == domain.lstrip(".")          # exact match (e.g. "ics.uci.edu")
+            or hostname.endswith(domain)            # subdomain (e.g. "vision.ics.uci.edu")
+            for domain in ALLOWED_DOMAINS
+        )
+        if not domain_ok:
+            return False
 
         # ── File extension filter ────────────────────────────────────
         # Reject known binary / non-page file extensions.  We compile
@@ -269,6 +264,18 @@ def is_valid(url):
         # 7. /wp-admin, /wp-login, /wp-json, and similar WordPress
         #    back-end paths never have useful crawlable content.
         if re.search(r"/(wp-admin|wp-login|wp-json|cgi-bin|api/)", path_lower):
+            return False
+
+        # 8. DokuWiki — block any URL routed through doku.php.
+        if "doku.php" in path_lower:
+            return False
+
+        # 9. Event/calendar listing pages generate infinite paginated content.
+        if re.search(r"/(events?)/", path_lower):
+            return False
+
+        # 10. Known low-value path patterns.
+        if "/~eppstein/pix/" in path_lower:
             return False
 
         # ── If we passed all filters, the URL is valid ───────────────
