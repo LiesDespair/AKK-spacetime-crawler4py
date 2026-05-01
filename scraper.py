@@ -177,6 +177,11 @@ def is_valid(url):
             return False
         hostname = hostname.lower()
 
+        # Known trap domains — block entirely.
+        BLOCKED_HOSTS = {"grape.ics.uci.edu", "intranet.ics.uci.edu", "wiki.ics.uci.edu"}
+        if hostname in BLOCKED_HOSTS:
+            return False
+
         # Special case: today.uci.edu is only allowed under the ICS department path.
         if hostname == "today.uci.edu":
             if not parsed.path.lower().startswith("/department/information_computer_sciences"):
