@@ -251,7 +251,8 @@ def is_valid(url):
             # session-dependent views.
             trap_params = ("sessionid", "sid", "phpsessid", "jsessionid",
                            "share", "replytocom", "action=login",
-                           "action=download", "do=hierarchicalnamespaceurlrewrite")
+                           "action=download", "do=hierarchicalnamespaceurlrewrite",
+                           "do=media", "tab_files", "tab_details")
             if any(tp in query_lower for tp in trap_params):
                 return False
 

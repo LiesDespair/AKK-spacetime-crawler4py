@@ -217,15 +217,14 @@ def generate_report() -> None:
     it only reads the shelf (no writes).  The report is printed to stdout
     and also written to analytics_report.txt.
     """
-    with _lock:
-        db = _open_shelf()
-        try:
-            unique_pages    = db.get("unique_pages",    set())
-            longest_page    = db.get("longest_page",    {"url": "N/A", "word_count": 0})
-            word_freq       = db.get("word_freq",       Counter())
-            subdomain_urls = db.get("subdomain_urls", {})
-        finally:
-            db.close()
+    db = shelve.open(ANALYTICS_SAVE, flag="r")
+    try:
+        unique_pages   = db.get("unique_pages",   set())
+        longest_page   = db.get("longest_page",   {"url": "N/A", "word_count": 0})
+        word_freq      = db.get("word_freq",      Counter())
+        subdomain_urls = db.get("subdomain_urls", {})
+    finally:
+        db.close()
 
     lines = []
 
