@@ -34,7 +34,7 @@ NON_PAGE_EXTENSIONS = re.compile(
     + r"|json|xml|rss|atom|feed"
     + r"|py|java|c|cpp|h|class|o"
     + r"|svg|webp|bak|log|conf|cfg|ini"
-    + r"|mpg|flv|m4a|aac|odt|ods|odp|ttf|woff2?|eot)$",
+    + r"|mpg|flv|m4a|aac|odt|ods|odp|ttf|woff2?|eot|txt)$",
 )
 
 
@@ -172,8 +172,7 @@ def is_valid(url):
         hostname = hostname.lower()
 
         # Known trap domains — block entirely.
-        BLOCKED_HOSTS = {"grape.ics.uci.edu", "intranet.ics.uci.edu", "wiki.ics.uci.edu",
-                         "wics.ics.uci.edu"}
+        BLOCKED_HOSTS = {"grape.ics.uci.edu", "intranet.ics.uci.edu", "wics.ics.uci.edu"}
         if hostname in BLOCKED_HOSTS:
             return False
 

@@ -92,6 +92,10 @@ STOP_WORDS = {
     "wasnt", "wed", "well", "were", "werent", "whats", "whens",
     "wheres", "whos", "whys", "wont", "wouldnt",
     "youd", "youll", "youre", "youve",
+    # ── Months ───────────────────────────────────────────────────────────────
+    "january", "february", "march", "april", "may", "june",
+    "july", "august", "september", "october", "november", "december",
+    "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
 }
 
 # Minimum token length to count — single-character tokens (e.g. "i", "a"
