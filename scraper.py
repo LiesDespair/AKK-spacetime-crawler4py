@@ -2,7 +2,7 @@ import re
 from collections import Counter
 from urllib.parse import urlparse, urljoin, urldefrag
 from bs4 import BeautifulSoup
-from analytics import record_page
+from analytics import record_page, is_duplicate
 
 # ──────────────────────────────────────────────────────────────
 # Allowed domains/paths — only URLs under these will be crawled.
@@ -105,6 +105,13 @@ def extract_next_links(url, resp):
     # walls, or blank templates with no content worth indexing.
     page_text = soup.get_text(separator=" ", strip=True)
     if len(page_text) < 50:
+        return extracted_links
+
+    # ── Duplicate detection ──────────────────────────────────────────
+    # Skip exact duplicates (same FNV-1a hash) and near-duplicates
+    # (simhash Hamming distance ≤ 3).  Still return extracted_links
+    # so the frontier can still discover pages reachable from here.
+    if is_duplicate(page_text):
         return extracted_links
 
     # ── Record analytics for this page ───────────────────────────────

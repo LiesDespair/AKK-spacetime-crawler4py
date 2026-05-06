@@ -124,6 +124,52 @@ def _is_uci_subdomain(hostname: str) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Simhash — exact and near-duplicate detection
+# FNV-1a 64-bit (public domain algorithm, no external libraries needed).
+# ─────────────────────────────────────────────────────────────────────────────
+_FNV_PRIME        = 0x00000100000001B3
+_FNV_OFFSET       = 0xcbf29ce484222325
+_MASK64           = 0xFFFFFFFFFFFFFFFF
+_SIMHASH_BITS     = 64
+_NEAR_DUP_THRESHOLD = 3   # Hamming distance ≤ this → near-duplicate
+
+
+def _fnv1a(text: str) -> int:
+    """64-bit FNV-1a hash of a UTF-8 string."""
+    h = _FNV_OFFSET
+    for byte in text.encode("utf-8"):
+        h = ((h ^ byte) * _FNV_PRIME) & _MASK64
+    return h
+
+
+def _simhash(tokens: list) -> int:
+    """64-bit simhash fingerprint for a token list."""
+    vector = [0] * _SIMHASH_BITS
+    for token in tokens:
+        h = _fnv1a(token)
+        for i in range(_SIMHASH_BITS):
+            if h & (1 << i):
+                vector[i] += 1
+            else:
+                vector[i] -= 1
+    fingerprint = 0
+    for i in range(_SIMHASH_BITS):
+        if vector[i] > 0:
+            fingerprint |= (1 << i)
+    return fingerprint
+
+
+def _hamming(h1: int, h2: int) -> int:
+    """Number of differing bits between two 64-bit integers (Kernighan method)."""
+    x = h1 ^ h2
+    count = 0
+    while x:
+        x &= x - 1
+        count += 1
+    return count
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -144,6 +190,46 @@ def tokenize(text: str) -> list:
         t for t in raw_tokens
         if len(t) > MIN_WORD_LEN and t not in STOP_WORDS
     ]
+
+
+def is_duplicate(page_text: str) -> bool:
+    """Return True if page_text is an exact or near-duplicate of a seen page.
+
+    Exact duplicate : FNV-1a hash of the full text matches a stored hash.
+    Near-duplicate  : simhash Hamming distance ≤ _NEAR_DUP_THRESHOLD against
+                      any previously stored fingerprint.
+
+    Both stores are persisted in the analytics shelve so detection works
+    correctly across crawler restarts.
+    """
+    tokens = tokenize(page_text)
+    if not tokens:
+        return False
+
+    exact_hash  = _fnv1a(page_text)
+    fingerprint = _simhash(tokens)
+
+    with _lock:
+        db = _open_shelf()
+        try:
+            exact_hashes   = _get_or_default(db, "exact_hashes",   set())
+            simhash_store  = _get_or_default(db, "simhash_store",   [])
+
+            if exact_hash in exact_hashes:
+                return True
+
+            for stored in simhash_store:
+                if _hamming(fingerprint, stored) <= _NEAR_DUP_THRESHOLD:
+                    return True
+
+            exact_hashes.add(exact_hash)
+            simhash_store.append(fingerprint)
+            db["exact_hashes"]  = exact_hashes
+            db["simhash_store"] = simhash_store
+            db.sync()
+            return False
+        finally:
+            db.close()
 
 
 def record_page(url: str, soup) -> None:
