@@ -102,16 +102,27 @@ def extract_next_links(url, resp):
 
     # ── Reject Word/Office XML documents mislabeled as HTML ─────────
     # Some pages serve raw Office XML (Word, Excel) with a text/html
-    # content-type.  The giveaway is the Microsoft Office namespace.
-    raw_start = resp.raw_response.content[:1000].decode("utf-8", errors="ignore")
+    # content-type.  Check both the raw bytes and the parsed text since
+    # the cache server may compress content making the raw check miss.
+    raw_start = resp.raw_response.content[:5000].decode("utf-8", errors="ignore")
     if "schemas-microsoft-com:office" in raw_start:
+        return extracted_links
+    if "LsdException" in raw_start:
         return extracted_links
 
     # ── Low-content page detection ───────────────────────────────────
-    # Pages with fewer than 50 visible characters are soft-404s, login
-    # walls, or blank templates with no content worth indexing.
+    # Pages with fewer than 50 words are soft-404s, login walls, or
+    # blank templates with no content worth indexing.
     page_text = soup.get_text(separator=" ", strip=True)
-    if len(page_text) < 50:
+    word_count = len(page_text.split())
+    if word_count < 50:
+        return extracted_links
+
+    # ── High word count cap ──────────────────────────────────────────
+    # Legitimate web pages rarely exceed 50,000 words.  Pages above
+    # this threshold are almost always junk (embedded Office XML,
+    # auto-generated data dumps, etc.).
+    if word_count > 50000:
         return extracted_links
 
     # ── Duplicate detection ──────────────────────────────────────────
@@ -284,6 +295,8 @@ def is_valid(url):
 
         # 10. Known low-value path patterns.
         if "/~eppstein/pix/" in path_lower:
+            return False
+        if "/genealogy" in path_lower:
             return False
 
         # ── If we passed all filters, the URL is valid ───────────────

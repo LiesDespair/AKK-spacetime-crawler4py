@@ -53,7 +53,7 @@ STOP_WORDS = {
     "and", "any", "are", "aren't", "as", "at",
     "be", "because", "been", "before", "being", "below", "between", "both",
     "but", "by",
-    "can't", "cannot", "could", "couldn't",
+    "can", "can't", "cannot", "could", "couldn't", "will",
     "did", "didn't", "do", "does", "doesn't", "doing", "don't", "down",
     "during",
     "each",
@@ -92,6 +92,9 @@ STOP_WORDS = {
     "wasnt", "wed", "well", "were", "werent", "whats", "whens",
     "wheres", "whos", "whys", "wont", "wouldnt",
     "youd", "youll", "youre", "youve",
+    # ── URL / domain fragments ────────────────────────────────────────────────
+    # These appear when pages display URLs or domain names as visible text.
+    "edu", "uci", "ics", "www", "http", "https", "html", "php", "asp",
     # ── Months ───────────────────────────────────────────────────────────────
     "january", "february", "march", "april", "may", "june",
     "july", "august", "september", "october", "november", "december",
@@ -124,14 +127,25 @@ def _is_uci_subdomain(hostname: str) -> bool:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Simhash — exact and near-duplicate detection
+# Fingerprint-based exact and near-duplicate detection
+# ─────────────────────────────────────────────────────────────────────────────
+#   1. Parse document into words (tokens).
+#   2. Group tokens into contiguous n-grams (overlapping sequences of n words).
+#   3. Hash each n-gram using FNV-1a (fast, no libraries needed).
+#   4. Select a subset of hashes using modular selection (H mod k == 0).
+#   5. Store the selected hash set as the document's "fingerprint".
+#   6. Compare documents using Jaccard similarity (|A ∩ B| / |A ∪ B|).
+#   7. If similarity ≥ threshold τ, documents are near-duplicates.
+#
 # FNV-1a 64-bit (public domain algorithm, no external libraries needed).
 # ─────────────────────────────────────────────────────────────────────────────
-_FNV_PRIME        = 0x00000100000001B3
-_FNV_OFFSET       = 0xcbf29ce484222325
-_MASK64           = 0xFFFFFFFFFFFFFFFF
-_SIMHASH_BITS     = 64
-_NEAR_DUP_THRESHOLD = 3   # Hamming distance ≤ this → near-duplicate
+_FNV_PRIME  = 0x00000100000001B3
+_FNV_OFFSET = 0xcbf29ce484222325
+_MASK64     = 0xFFFFFFFFFFFFFFFF
+
+_NGRAM_SIZE          = 3     # 3-grams as shown in lecture example
+_MOD_SELECT          = 4     # keep hashes where H mod 4 == 0 (lecture slide 34)
+_SIMILARITY_THRESHOLD = 0.8  # Jaccard ≥ this → near-duplicate
 
 
 def _fnv1a(text: str) -> int:
@@ -142,32 +156,35 @@ def _fnv1a(text: str) -> int:
     return h
 
 
-def _simhash(tokens: list) -> int:
-    """64-bit simhash fingerprint for a token list."""
-    vector = [0] * _SIMHASH_BITS
-    for token in tokens:
-        h = _fnv1a(token)
-        for i in range(_SIMHASH_BITS):
-            if h & (1 << i):
-                vector[i] += 1
-            else:
-                vector[i] -= 1
-    fingerprint = 0
-    for i in range(_SIMHASH_BITS):
-        if vector[i] > 0:
-            fingerprint |= (1 << i)
-    return fingerprint
+def _ngrams(tokens: list, n: int) -> list:
+    """Generate overlapping word n-grams from a token list."""
+    if len(tokens) < n:
+        return [" ".join(tokens)] if tokens else []
+    return [" ".join(tokens[i : i + n]) for i in range(len(tokens) - n + 1)]
 
 
-def _hamming(h1: int, h2: int) -> int:
-    """Number of differing bits between two 64-bit integers (Kernighan method)."""
-    x = h1 ^ h2
-    count = 0
-    while x:
-        x &= x - 1
-        count += 1
-    return count
+def _fingerprint(tokens: list) -> frozenset:
+    """Compute the fingerprint of a document (lecture method).
 
+    Steps:
+      1. Build 3-grams from the token list.
+      2. Hash each 3-gram with FNV-1a.
+      3. Select only hashes where H mod 4 == 0.
+      4. Return the selected hashes as a frozenset.
+    """
+    grams = _ngrams(tokens, _NGRAM_SIZE)
+    all_hashes = [_fnv1a(gram) for gram in grams]
+    selected = frozenset(h for h in all_hashes if h % _MOD_SELECT == 0)
+    return selected
+
+
+def _jaccard(set_a, set_b) -> float:
+    """Jaccard similarity: |A ∩ B| / |A ∪ B|."""
+    if not set_a and not set_b:
+        return 0.0
+    intersection = len(set_a & set_b)
+    union = len(set_a | set_b)
+    return intersection / union if union > 0 else 0.0
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API
@@ -196,8 +213,16 @@ def is_duplicate(page_text: str) -> bool:
     """Return True if page_text is an exact or near-duplicate of a seen page.
 
     Exact duplicate : FNV-1a hash of the full text matches a stored hash.
-    Near-duplicate  : simhash Hamming distance ≤ _NEAR_DUP_THRESHOLD against
-                      any previously stored fingerprint.
+    Near-duplicate  : Jaccard similarity of n-gram fingerprints ≥ threshold τ
+                      against any previously stored fingerprint.
+
+    Method:
+      1. Tokenize the page text.
+      2. Build 3-grams from the tokens.
+      3. Hash each 3-gram and select a subset (H mod 4 == 0).
+      4. Compare this fingerprint set against all stored fingerprints
+         using Jaccard similarity (|A ∩ B| / |A ∪ B|).
+      5. If Jaccard ≥ threshold, it's a near-duplicate.
 
     Both stores are persisted in the analytics shelve so detection works
     correctly across crawler restarts.
@@ -206,26 +231,35 @@ def is_duplicate(page_text: str) -> bool:
     if not tokens:
         return False
 
-    exact_hash  = _fnv1a(page_text)
-    fingerprint = _simhash(tokens)
+    exact_hash = _fnv1a(page_text)
+    fp = _fingerprint(tokens)
 
     with _lock:
         db = _open_shelf()
         try:
-            exact_hashes   = _get_or_default(db, "exact_hashes",   set())
-            simhash_store  = _get_or_default(db, "simhash_store",   [])
+            exact_hashes     = _get_or_default(db, "exact_hashes",     set())
+            fingerprint_store = _get_or_default(db, "fingerprint_store", [])
 
+            # ── Exact duplicate check ────────────────────────────────
             if exact_hash in exact_hashes:
                 return True
 
-            for stored in simhash_store:
-                if _hamming(fingerprint, stored) <= _NEAR_DUP_THRESHOLD:
-                    return True
+            # ── Near-duplicate check (Jaccard similarity) ────────────
+            # Only compare if the new document produced a non-empty
+            # fingerprint; pages with too few tokens may produce an
+            # empty set after mod-selection, which would give a
+            # misleading Jaccard of 0.0.
+            if fp:
+                for stored_fp in fingerprint_store:
+                    if _jaccard(fp, stored_fp) >= _SIMILARITY_THRESHOLD:
+                        return True
 
+            # ── Not a duplicate — store fingerprint for future checks ─
             exact_hashes.add(exact_hash)
-            simhash_store.append(fingerprint)
-            db["exact_hashes"]  = exact_hashes
-            db["simhash_store"] = simhash_store
+            if fp:
+                fingerprint_store.append(fp)
+            db["exact_hashes"]     = exact_hashes
+            db["fingerprint_store"] = fingerprint_store
             db.sync()
             return False
         finally:
