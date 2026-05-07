@@ -1,0 +1,146 @@
+======================================================================
+Q1. Unique pages found
+======================================================================
+  Total: 13,299
+
+======================================================================
+Q2. Longest page (by word count, HTML markup excluded)
+======================================================================
+  URL:        http://www.ics.uci.edu/~cs224
+  Word count: 104,960
+
+======================================================================
+Q3. 50 most common words (stop-words and single-chars excluded)
+======================================================================
+    1. married                            29,635
+    2. will                               22,052
+    3. can                                21,572
+    4. ics                                19,449
+    5. one                                17,338
+    6. data                               16,317
+    7. research                           15,854
+    8. uci                                15,208
+    9. information                        14,974
+   10. computer                           14,712
+   11. ramesh                             13,974
+   12. time                               13,138
+   13. software                           11,002
+   14. students                           10,928
+   15. learning                           10,616
+   16. university                         10,378
+   17. science                            10,230
+   18. course                              9,732
+   19. family                              9,722
+   20. new                                 9,504
+   21. use                                 9,407
+   22. current                             9,363
+   23. irvine                              9,322
+   24. search                              9,211
+   25. project                             9,144
+   26. using                               9,044
+   27. systems                             9,029
+   28. first                               8,965
+   29. program                             8,929
+   30. jain                                8,836
+   31. edu                                 8,715
+   32. work                                8,695
+   33. also                                8,587
+   34. computing                           8,436
+   35. two                                 8,245
+   36. read                                7,998
+   37. pdf                                 7,907
+   38. graph                               7,366
+   39. eppstein                            7,349
+   40. algorithms                          7,334
+   41. class                               7,329
+   42. file                                7,246
+   43. set                                 7,171
+   44. krakow                              7,167
+   45. listing                             7,001
+   46. past                                6,979
+   47. number                              6,904
+   48. list                                6,898
+   49. problem                             6,877
+   50. news                                6,772
+
+======================================================================
+Q4. Subdomains found in uci.edu (alphabetical)
+======================================================================
+  Total subdomains: 76
+
+  accessibility.ics.uci.edu, 6
+  acoi.ics.uci.edu, 112
+  archive-beta.ics.uci.edu, 11
+  archive.ics.uci.edu, 220
+  asterix.ics.uci.edu, 14
+  cert.ics.uci.edu, 54
+  checkin.ics.uci.edu, 3
+  chenli.ics.uci.edu, 10
+  cloudberry.ics.uci.edu, 4
+  cml.ics.uci.edu, 255
+  code.ics.uci.edu, 14
+  computableplant.ics.uci.edu, 124
+  courselisting.ics.uci.edu, 4
+  cradl.ics.uci.edu, 18
+  create.ics.uci.edu, 4
+  cs.ics.uci.edu, 13
+  cs.uci.edu, 1
+  dgillen.ics.uci.edu, 32
+  ds4all.ics.uci.edu, 9
+  dynamo.ics.uci.edu, 9
+  edgelab.ics.uci.edu, 7
+  elms.ics.uci.edu, 1
+  emj.ics.uci.edu, 41
+  evoke.ics.uci.edu, 4
+  flamingo.ics.uci.edu, 2037
+  fr.ics.uci.edu, 3
+  futurehealth.ics.uci.edu, 1
+  graphics.ics.uci.edu, 1
+  hobbes.ics.uci.edu, 10
+  hpi.ics.uci.edu, 5
+  i-sensorium.ics.uci.edu, 5
+  icde2023.ics.uci.edu, 46
+  ics.uci.edu, 6419
+  industryshowcase.ics.uci.edu, 24
+  informatics.ics.uci.edu, 27
+  informatics.uci.edu, 2
+  ipubmed.ics.uci.edu, 1
+  isg.ics.uci.edu, 101
+  isi-buds.ics.uci.edu, 4
+  jgarcia.ics.uci.edu, 40
+  luci.ics.uci.edu, 4
+  mailman.ics.uci.edu, 40
+  malek.ics.uci.edu, 1
+  mcs.ics.uci.edu, 12
+  mdogucu.ics.uci.edu, 1
+  mds.ics.uci.edu, 9
+  mhcid.ics.uci.edu, 20
+  mover.ics.uci.edu, 24
+  mswe.ics.uci.edu, 10
+  myip.ics.uci.edu, 1
+  nalini.ics.uci.edu, 7
+  ngs.ics.uci.edu, 2025
+  oai.ics.uci.edu, 6
+  psearch.ics.uci.edu, 1
+  riscit.ics.uci.edu, 1
+  sana.ics.uci.edu, 4
+  scale.ics.uci.edu, 6
+  seal.ics.uci.edu, 46
+  sherlock.ics.uci.edu, 7
+  sparcfire.ics.uci.edu, 3
+  stairs.ics.uci.edu, 3
+  stat.ics.uci.edu, 11
+  stat.uci.edu, 2
+  summeracademy.ics.uci.edu, 13
+  support.ics.uci.edu, 3
+  tastier.ics.uci.edu, 1
+  tutoring.ics.uci.edu, 5
+  vision.ics.uci.edu, 220
+  wiki.ics.uci.edu, 1
+  www-db.ics.uci.edu, 25
+  www.cs.uci.edu, 5
+  www.ics.uci.edu, 1062
+  www.informatics.ics.uci.edu, 1
+  www.informatics.uci.edu, 12
+  www.stat.uci.edu, 5
+  xtune.ics.uci.edu, 6
